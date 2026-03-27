@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitcoin QR</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+
+    #carpetCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    #qr {
+      padding: 12px;
+      background: #ff0000;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+      animation: qr-bg-rainbow 4s linear infinite;
+    }
+
+    #qr canvas,
+    #qr img {
+      display: block;
+    }
+
+    .address-text {
+      margin: 0;
+      color: #fff;
+      font-size: 18px;
+      line-height: 1.4;
+      word-break: break-word;
+      max-width: 900px;
+      background: rgba(0, 0, 0, 1);
+      padding: 8px 12px;
+      border-radius: 8px;
+    }
+
+    .discord-text {
+      position: fixed;
+      bottom: 60px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      margin: 0;
+      color: #fff;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+      opacity: 1;
+      background: rgba(0, 0, 0, 1);
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+
+    .steam-text {
+      position: fixed;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      margin: 0;
+      color: #fff;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+      opacity: 1;
+      background: rgba(0, 0, 0, 1);
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+
+    .youtube-text {
+      position: fixed;
+      bottom: 38px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 1;
+      margin: 0;
+      color: #fff;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+      opacity: 1;
+      text-decoration: none;
+      background: rgba(0, 0, 0, 1);
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+
+    .youtube-text:hover,
+    .youtube-text:focus-visible {
+      text-decoration: underline;
+    }
+
+    .spotify-embed {
+      position: fixed;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 320px;
+      max-width: calc(100vw - 32px);
+      z-index: 2;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .spotify-embed.collapsed {
+      transform: translate(-112%, -50%);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .spotify-toggle {
+      position: fixed;
+      left: 16px;
+      top: 16px;
+      z-index: 3;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(0, 0, 0, 0.65);
+      color: #fff;
+      border-radius: 10px;
+      padding: 8px 10px;
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+    }
+
+    .rainbow {
+      animation: rainbow-cycle 4s linear infinite;
+      animation-delay: -2s;
+    }
+
+    @keyframes rainbow-cycle {
+      0% { color: #ff0000; }
+      16% { color: #ff7f00; }
+      33% { color: #ffff00; }
+      50% { color: #00ff00; }
+      66% { color: #0000ff; }
+      83% { color: #8b00ff; }
+      100% { color: #ff0000; }
+    }
+
+    @keyframes qr-bg-rainbow {
+      0% { background-color: #ff0000; }
+      16% { background-color: #ff7f00; }
+      33% { background-color: #ffff00; }
+      50% { background-color: #00ff00; }
+      66% { background-color: #0000ff; }
+      83% { background-color: #8b00ff; }
+      100% { background-color: #ff0000; }
+    }
+
+    @keyframes page-bg-pulse {
+      0% { background-color: #000000; }
+      47% { background-color: #000000; }
+      50% { background-color: #1c7d0a; }
+      53% { background-color: #000000; }
+      100% { background-color: #000000; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="carpetCanvas" aria-hidden="true"></canvas>
+  <div class="wrap">
+    <div id="qr" aria-label="Bitcoin address QR code"></div>
+    <p class="address-text">Receiving address for Bitcoin: <span class="rainbow">bc1qcm2n9zu0x2uvuaxn3q3ua23qhxkgn30csaa5vz</span></p>
+  </div>
+  <button id="spotifyToggle" class="spotify-toggle" type="button" aria-expanded="false" aria-controls="spotifyEmbed">Show music</button>
+  <div id="spotifyEmbed" class="spotify-embed collapsed">
+    <iframe data-testid="embed-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/playlist/1HlUIdKvkZPboDV3h3aldW?utm_source=generator" width="100%" height="352" frameborder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+  </div>
+  <p class="discord-text">Discord: oops_all_warcrimes</p>
+  <a class="youtube-text" href="https://www.youtube.com/@Alexandertheso-so" target="_blank" rel="noopener noreferrer">YouTube: https://www.youtube.com/@Alexandertheso-so</a>
+  <p class="steam-text">Steam: 1110392789</p>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script>
+    const bitcoinAddress = "bc1qcm2n9zu0x2uvuaxn3q3ua23qhxkgn30csaa5vz";
+    const carpetCanvas = document.getElementById("carpetCanvas");
+    const carpetCtx = carpetCanvas.getContext("2d");
+    let carpetOffsetX = 0;
+    let carpetOffsetY = 0;
+    const qrElement = document.getElementById("qr");
+    const spotifyEmbed = document.getElementById("spotifyEmbed");
+    const spotifyToggle = document.getElementById("spotifyToggle");
+
+    new QRCode(document.getElementById("qr"), {
+      text: bitcoinAddress,
+      width: 320,
+      height: 320,
+      colorDark: "#000000",
+      colorLight: "rgba(0,0,0,0)",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+
+    spotifyToggle.addEventListener("click", () => {
+      const isCollapsed = spotifyEmbed.classList.toggle("collapsed");
+      spotifyToggle.textContent = isCollapsed ? "Show music" : "Hide music";
+      spotifyToggle.setAttribute("aria-expanded", String(!isCollapsed));
+    });
+
+    function carveCarpet(x, y, size, depth) {
+      if (depth <= 0) {
+        return;
+      }
+
+      const third = size / 3;
+      carpetCtx.clearRect(x + third, y + third, third, third);
+
+      for (let row = 0; row < 3; row += 1) {
+        for (let col = 0; col < 3; col += 1) {
+          if (row === 1 && col === 1) {
+            continue;
+          }
+          carveCarpet(x + col * third, y + row * third, third, depth - 1);
+        }
+      }
+    }
+
+    function drawSierpinskiCarpet() {
+      const dpr = window.devicePixelRatio || 1;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      carpetCanvas.width = Math.floor(width * dpr);
+      carpetCanvas.height = Math.floor(height * dpr);
+      carpetCanvas.style.width = `${width}px`;
+      carpetCanvas.style.height = `${height}px`;
+
+      carpetCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      carpetCtx.clearRect(0, 0, width, height);
+
+      const power = Math.floor(Math.log(Math.max(1, Math.min(width, height))) / Math.log(3));
+      const tileSize = Math.max(3, Math.pow(3, Math.max(1, power + 1)));
+      const maxDepth = Math.max(1, Math.floor(Math.log(tileSize / 6) / Math.log(3)));
+
+      if (carpetOffsetX === 0 && carpetOffsetY === 0) {
+        carpetOffsetX = Math.random() * tileSize;
+        carpetOffsetY = Math.random() * tileSize;
+      }
+      const startX = -carpetOffsetX;
+      const startY = -carpetOffsetY;
+
+      carpetCtx.fillStyle = "#1c7d0a";
+      for (let y = startY; y < height; y += tileSize) {
+        for (let x = startX; x < width; x += tileSize) {
+          carpetCtx.fillRect(x, y, tileSize, tileSize);
+          carveCarpet(x, y, tileSize, maxDepth);
+        }
+      }
+    }
+
+    drawSierpinskiCarpet();
+    window.addEventListener("resize", drawSierpinskiCarpet);
+
+    const rotationRatePerSecond = 0.01;
+    let currentRotation = 0;
+    let lastFrameTime = performance.now();
+
+    function animateQrRotation(now) {
+      const deltaSeconds = (now - lastFrameTime) / 1000;
+      lastFrameTime = now;
+      currentRotation += rotationRatePerSecond * deltaSeconds;
+      qrElement.style.transform = `rotate(${currentRotation}deg)`;
+      requestAnimationFrame(animateQrRotation);
+    }
+
+    requestAnimationFrame(animateQrRotation);
+  </script>
+</body>
+</html>
