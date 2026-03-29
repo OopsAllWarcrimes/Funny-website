@@ -58,6 +58,34 @@
       display: block;
     }
 
+    .nav-button {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      z-index: 1;
+      display: inline-block;
+      margin: 0;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-family: inherit;
+      color: transparent;
+      text-decoration: line-through;
+      text-decoration-color: rgba(255, 255, 255, 0.9);
+      text-decoration-thickness: 2px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      opacity: 0.05;
+      transition: background 0.15s ease;
+    }
+
+    .nav-button:hover,
+    .nav-button:focus-visible {
+      background: rgba(40, 40, 40, 0.5);
+      outline: none;
+    }
+
     .address-text {
       margin: 0;
       color: #fff;
@@ -193,15 +221,81 @@
       flex-shrink: 0;
       width: max-content;
     }
+
+    .mobile-notice {
+      position: fixed;
+      inset: 0;
+      z-index: 10001;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      box-sizing: border-box;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(4px);
+    }
+
+    .mobile-notice--hidden {
+      display: none;
+    }
+
+    .mobile-notice__box {
+      max-width: 360px;
+      padding: 20px 22px;
+      border-radius: 12px;
+      background: #111;
+      border: 1px solid #333;
+      color: #e8e8e8;
+      text-align: center;
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .mobile-notice__box h2 {
+      margin: 0 0 10px;
+      font-size: 17px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .mobile-notice__box p {
+      margin: 0 0 16px;
+    }
+
+    .mobile-notice__dismiss {
+      padding: 10px 24px;
+      font-size: 15px;
+      font-family: inherit;
+      color: #000;
+      background: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .mobile-notice__dismiss:hover,
+    .mobile-notice__dismiss:focus-visible {
+      background: #ddd;
+      outline: 2px solid #00ff00;
+      outline-offset: 2px;
+    }
   </style>
 </head>
 <body>
+  <div id="mobileNotice" class="mobile-notice mobile-notice--hidden" role="dialog" aria-modal="true" aria-labelledby="mobileNoticeTitle" hidden>
+    <div class="mobile-notice__box">
+      <h2 id="mobileNoticeTitle">Mobile device</h2>
+      <p>This page is laid out for larger screens. Open the mobile-friendly page or use a desktop for the full layout.</p>
+      <button type="button" class="mobile-notice__dismiss" id="mobileNoticeDismiss">Open mobile page</button>
+    </div>
+  </div>
   <div id="skullOverlay" class="skull-overlay" aria-hidden="false">
     <div id="skullOverlayStage" class="skull-overlay-stage">
       <pre id="skullOverlayText" class="skull-overlay-pre"></pre>
     </div>
   </div>
   <canvas id="carpetCanvas" aria-hidden="true"></canvas>
+  <a class="nav-button" href="main.html">Table of Contents</a>
   <div class="wrap">
     <div id="qr" aria-label="Bitcoin address QR code"></div>
     <p class="address-text">Receiving address for Bitcoin: <span class="rainbow">bc1qcm2n9zu0x2uvuaxn3q3ua23qhxkgn30csaa5vz</span></p>
@@ -209,14 +303,42 @@
   <p class="discord-text">Discord: oops_all_warcrimes</p>
   <a class="youtube-text" href="https://www.youtube.com/@Alexandertheso-so" target="_blank" rel="noopener noreferrer">YouTube: https://www.youtube.com/@Alexandertheso-so</a>
   <p class="steam-text">Steam: 1110392789</p>
+  <audio id="skullPhaseMusic" preload="auto" src="ultrakill.mp3" loop style="display:none"></audio>
+  <audio id="postSkullMusic" preload="auto" src="Bad Piggies main theme but it never starts (Extended Ver).mp3" style="display:none"></audio>
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script>
+    function isMobileUser() {
+      const ua = navigator.userAgent || "";
+      if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Silk\//i.test(ua)) {
+        return true;
+      }
+      if (typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints > 1 && /Macintosh/.test(ua)) {
+        return true;
+      }
+      return false;
+    }
+
+    (function setupMobileNotice() {
+      const el = document.getElementById("mobileNotice");
+      const btn = document.getElementById("mobileNoticeDismiss");
+      if (!el || !btn) return;
+      if (!isMobileUser()) {
+        return;
+      }
+      el.classList.remove("mobile-notice--hidden");
+      el.removeAttribute("hidden");
+      btn.addEventListener("click", () => {
+        window.location.href = "mobile.html";
+      });
+    })();
+
     const skullOverlay = document.getElementById("skullOverlay");
     const skullOverlayStage = document.getElementById("skullOverlayStage");
     const skullOverlayText = document.getElementById("skullOverlayText");
     let skullFrameInterval = null;
     let skullResizeObserver = null;
+    let postSkullMusicStarted = false;
 
     function fitSkullOverlayPre() {
       const stage = skullOverlayStage;
@@ -250,8 +372,20 @@
         skullResizeObserver.disconnect();
         skullResizeObserver = null;
       }
+      const skullPhaseMusic = document.getElementById("skullPhaseMusic");
+      if (skullPhaseMusic) {
+        skullPhaseMusic.pause();
+        skullPhaseMusic.currentTime = 0;
+      }
       skullOverlay.classList.add("skull-overlay--hidden");
       skullOverlay.setAttribute("aria-hidden", "true");
+      if (!postSkullMusicStarted) {
+        postSkullMusicStarted = true;
+        const music = document.getElementById("postSkullMusic");
+        if (music) {
+          music.play().catch(() => {});
+        }
+      }
     };
 
     const hideAfterReloadTimer = setTimeout(hideSkullOverlay, 30000);
@@ -281,6 +415,11 @@
           fitSkullOverlayPre();
         });
         skullResizeObserver.observe(skullOverlayStage);
+        const skullPhaseMusic = document.getElementById("skullPhaseMusic");
+        if (skullPhaseMusic) {
+          skullPhaseMusic.volume = 0.5;
+          skullPhaseMusic.play().catch(() => {});
+        }
       })
       .catch(() => {
         clearTimeout(hideAfterReloadTimer);
@@ -370,6 +509,12 @@
     }
 
     requestAnimationFrame(animateQrRotation);
+
+    setInterval(() => {
+      if (Math.random() < 0.001) {
+        window.location.href = "https://youtu.be/xvFZjo5PgG0";
+      }
+    }, 1000);
   </script>
 </body>
 </html>

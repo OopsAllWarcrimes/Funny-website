@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bitcoin QR — Mobile</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      background: #000;
+      color: #e8e8e8;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      padding: 24px 20px 40px;
+      box-sizing: border-box;
+      line-height: 1.45;
+    }
+    h1 {
+      margin: 0 0 16px;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    p { margin: 0 0 12px; }
+    .address {
+      word-break: break-all;
+      font-size: 0.95rem;
+      padding: 10px 12px;
+      background: #111;
+      border-radius: 8px;
+      border: 1px solid #333;
+    }
+    a.back {
+      display: inline-block;
+      margin-top: 24px;
+      color: #7dff7d;
+    }
+    a.back:focus-visible {
+      outline: 2px solid #00ff00;
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Bitcoin receiving address</h1>
+  <p class="address">bc1qcm2n9zu0x2uvuaxn3q3ua23qhxkgn30csaa5vz</p>
+  <p>For the full experience (QR and background), open this site on a larger screen.</p>
+  <a class="back" href="index.html">← Desktop version</a>
+  <audio id="hammerTrack" preload="auto" src="M.C. Hammer - U Can't Touch This.mp3" style="display:none"></audio>
+  <script>
+    (function () {
+      var audio = document.getElementById("hammerTrack");
+      if (!audio) return;
+      var delayMs = 60 * 1000;
+      var startOffsetSec = 15;
+      audio.addEventListener("ended", function () {
+        audio.currentTime = startOffsetSec;
+        var p = audio.play();
+        if (p && typeof p.catch === "function") {
+          p.catch(function () {});
+        }
+      });
+      setTimeout(function () {
+        function seekAndPlay() {
+          audio.currentTime = startOffsetSec;
+          var p = audio.play();
+          if (p && typeof p.catch === "function") {
+            p.catch(function () {});
+          }
+        }
+        if (audio.readyState >= 1) {
+          seekAndPlay();
+        } else {
+          audio.addEventListener("loadedmetadata", seekAndPlay, { once: true });
+        }
+      }, delayMs);
+    })();
+  </script>
+</body>
+</html>
