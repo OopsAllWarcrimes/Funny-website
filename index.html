@@ -30,6 +30,8 @@
       height: 100vh;
       z-index: 0;
       pointer-events: none;
+      box-sizing: border-box;
+      border: 4px solid #000;
     }
 
     .wrap {
@@ -122,38 +124,6 @@
       text-decoration: underline;
     }
 
-    .spotify-embed {
-      position: fixed;
-      left: 16px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 320px;
-      max-width: calc(100vw - 32px);
-      z-index: 2;
-      transition: transform 0.25s ease, opacity 0.25s ease;
-    }
-
-    .spotify-embed.collapsed {
-      transform: translate(-112%, -50%);
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .spotify-toggle {
-      position: fixed;
-      left: 16px;
-      top: 16px;
-      z-index: 3;
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      background: rgba(0, 0, 0, 0.65);
-      color: #fff;
-      border-radius: 10px;
-      padding: 8px 10px;
-      cursor: pointer;
-      font-size: 14px;
-      line-height: 1;
-    }
-
     .rainbow {
       animation: rainbow-cycle 4s linear infinite;
       animation-delay: -2s;
@@ -186,17 +156,55 @@
       53% { background-color: #000000; }
       100% { background-color: #000000; }
     }
+
+    .skull-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      background: #000;
+      color: #00ff00;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+
+    .skull-overlay--hidden {
+      display: none;
+    }
+
+    .skull-overlay-stage {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .skull-overlay-pre {
+      margin: 0;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.15;
+      white-space: pre;
+      max-width: none;
+      flex-shrink: 0;
+      width: max-content;
+    }
   </style>
 </head>
 <body>
+  <div id="skullOverlay" class="skull-overlay" aria-hidden="false">
+    <div id="skullOverlayStage" class="skull-overlay-stage">
+      <pre id="skullOverlayText" class="skull-overlay-pre"></pre>
+    </div>
+  </div>
   <canvas id="carpetCanvas" aria-hidden="true"></canvas>
   <div class="wrap">
     <div id="qr" aria-label="Bitcoin address QR code"></div>
     <p class="address-text">Receiving address for Bitcoin: <span class="rainbow">bc1qcm2n9zu0x2uvuaxn3q3ua23qhxkgn30csaa5vz</span></p>
-  </div>
-  <button id="spotifyToggle" class="spotify-toggle" type="button" aria-expanded="false" aria-controls="spotifyEmbed">Show music</button>
-  <div id="spotifyEmbed" class="spotify-embed collapsed">
-    <iframe data-testid="embed-iframe" style="border-radius:12px" src="https://open.spotify.com/embed/playlist/1HlUIdKvkZPboDV3h3aldW?utm_source=generator" width="100%" height="352" frameborder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
   </div>
   <p class="discord-text">Discord: oops_all_warcrimes</p>
   <a class="youtube-text" href="https://www.youtube.com/@Alexandertheso-so" target="_blank" rel="noopener noreferrer">YouTube: https://www.youtube.com/@Alexandertheso-so</a>
@@ -204,14 +212,87 @@
 
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script>
+    const skullOverlay = document.getElementById("skullOverlay");
+    const skullOverlayStage = document.getElementById("skullOverlayStage");
+    const skullOverlayText = document.getElementById("skullOverlayText");
+    let skullFrameInterval = null;
+    let skullResizeObserver = null;
+
+    function fitSkullOverlayPre() {
+      const stage = skullOverlayStage;
+      const pre = skullOverlayText;
+      const maxW = stage.clientWidth * 0.98;
+      const maxH = stage.clientHeight * 0.98;
+      if (maxW <= 0 || maxH <= 0 || !pre.textContent.trim()) {
+        return;
+      }
+
+      let lo = 2;
+      let hi = 512;
+      for (let k = 0; k < 42; k += 1) {
+        const mid = (lo + hi) / 2;
+        pre.style.fontSize = `${mid}px`;
+        if (pre.scrollWidth <= maxW && pre.scrollHeight <= maxH) {
+          lo = mid;
+        } else {
+          hi = mid;
+        }
+      }
+      pre.style.fontSize = `${lo}px`;
+    }
+
+    const hideSkullOverlay = () => {
+      if (skullFrameInterval !== null) {
+        clearInterval(skullFrameInterval);
+        skullFrameInterval = null;
+      }
+      if (skullResizeObserver !== null) {
+        skullResizeObserver.disconnect();
+        skullResizeObserver = null;
+      }
+      skullOverlay.classList.add("skull-overlay--hidden");
+      skullOverlay.setAttribute("aria-hidden", "true");
+    };
+
+    const hideAfterReloadTimer = setTimeout(hideSkullOverlay, 30000);
+
+    const fetchText = (path) =>
+      fetch(path).then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.text();
+      });
+
+    Promise.all([fetchText("skull.raw"), fetchText("skull2.raw")])
+      .then(([frame1, frame2]) => {
+        const frames = [frame1, frame2];
+        let i = 0;
+        const showFrame = () => {
+          skullOverlayText.textContent = frames[i];
+          requestAnimationFrame(() => {
+            fitSkullOverlayPre();
+          });
+        };
+        showFrame();
+        skullFrameInterval = setInterval(() => {
+          i = (i + 1) % 2;
+          showFrame();
+        }, 500);
+        skullResizeObserver = new ResizeObserver(() => {
+          fitSkullOverlayPre();
+        });
+        skullResizeObserver.observe(skullOverlayStage);
+      })
+      .catch(() => {
+        clearTimeout(hideAfterReloadTimer);
+        hideSkullOverlay();
+      });
+
     const bitcoinAddress = "bc1qcm2n9zu0x2uvuaxn3q3ua23qhxkgn30csaa5vz";
     const carpetCanvas = document.getElementById("carpetCanvas");
     const carpetCtx = carpetCanvas.getContext("2d");
     let carpetOffsetX = 0;
     let carpetOffsetY = 0;
     const qrElement = document.getElementById("qr");
-    const spotifyEmbed = document.getElementById("spotifyEmbed");
-    const spotifyToggle = document.getElementById("spotifyToggle");
 
     new QRCode(document.getElementById("qr"), {
       text: bitcoinAddress,
@@ -220,12 +301,6 @@
       colorDark: "#000000",
       colorLight: "rgba(0,0,0,0)",
       correctLevel: QRCode.CorrectLevel.H
-    });
-
-    spotifyToggle.addEventListener("click", () => {
-      const isCollapsed = spotifyEmbed.classList.toggle("collapsed");
-      spotifyToggle.textContent = isCollapsed ? "Show music" : "Hide music";
-      spotifyToggle.setAttribute("aria-expanded", String(!isCollapsed));
     });
 
     function carveCarpet(x, y, size, depth) {
